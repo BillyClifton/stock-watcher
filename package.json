@@ -1,4 +1,10 @@
 {
+  "name": "stock-watcher",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.995.0",
     "@aws-sdk/client-dynamodb": "^3.995.0",
@@ -6,9 +12,6 @@
     "@aws-sdk/client-sns": "^3.995.0",
     "@aws-sdk/lib-dynamodb": "^3.995.0"
   },
-  "name": "stock-analyzer",
-  "version": "1.0.0",
-  "main": "index.js",
   "devDependencies": {
     "eslint": "^10.0.1",
     "prettier": "^3.8.1"
