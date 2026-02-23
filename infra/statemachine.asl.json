@@ -1,0 +1,50 @@
+{
+  "Comment": "Daily stock forecast signal bot",
+  "StartAt": "LoadTickers",
+  "States": {
+    "LoadTickers": {
+      "Type": "Pass",
+      "ResultPath": "$.tickers",
+      "Result": { "source": "src/config/tickers.json" },
+      "Next": "ProcessTickers"
+    },
+    "ProcessTickers": {
+      "Type": "Map",
+      "ItemsPath": "$.tickers.list",
+      "MaxConcurrency": 3,
+      "Parameters": {
+        "ticker.$": "$$.Map.Item.Value",
+        "runDate.$": "$$.Execution.StartTime"
+      },
+      "Iterator": {
+        "StartAt": "PerTicker",
+        "States": {
+          "PerTicker": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${PerTickerArn}",
+              "Payload.$": "$"
+            },
+            "ResultPath": "$.perTickerResult",
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.results",
+      "Next": "BuildDailyAlert"
+    },
+    "BuildDailyAlert": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${BuildAlertArn}",
+        "Payload": {
+          "runDate.$": "$$.Execution.StartTime"
+        }
+      },
+      "ResultPath": "$.alert",
+      "End": true
+    }
+  }
+}

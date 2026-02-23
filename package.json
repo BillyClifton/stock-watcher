@@ -1,0 +1,20 @@
+{
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.995.0",
+    "@aws-sdk/client-dynamodb": "^3.995.0",
+    "@aws-sdk/client-s3": "^3.995.0",
+    "@aws-sdk/client-sns": "^3.995.0",
+    "@aws-sdk/lib-dynamodb": "^3.995.0"
+  },
+  "name": "stock-analyzer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

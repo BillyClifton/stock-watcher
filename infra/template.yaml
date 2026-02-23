@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Daily stock forecast signal bot (Bedrock + Step Functions)
+
+Parameters:
+  BedrockModelId:
+    Type: String
+    Default: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  AlertEmail:
+    Type: String
+    Default: "you@example.com"
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 60
+    MemorySize: 1024
+    Architectures: [arm64]
+    Environment:
+      Variables:
+        DOCS_BUCKET: !Ref DocsBucket
+        TABLE_DOCS: !Ref StockDocsTable
+        TABLE_SIGNALS: !Ref StockSignalsTable
+        ALERT_TOPIC_ARN: !Ref AlertTopic
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+
+Resources:
+  DocsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  StockDocsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
+  StockSignalsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+
+  EmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # --- Lambdas ---
+  RunDailyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./../
+      Handler: src/handlers/runDaily.handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DocsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StockDocsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StockSignalsTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+
+  PerTickerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./../
+      Handler: src/handlers/perTicker.handler
+      Timeout: 120
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref DocsBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StockDocsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StockSignalsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+
+  BuildAlertFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./../
+      Handler: src/handlers/buildAlert.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref StockSignalsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+
+  # --- Step Functions ---
+  DailyStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine.asl.json
+      DefinitionSubstitutions:
+        PerTickerArn: !GetAtt PerTickerFunction.Arn
+        BuildAlertArn: !GetAtt BuildAlertFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref PerTickerFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref BuildAlertFunction
+
+  # --- Scheduler (daily 7 AM ET) ---
+  DailyScheduleRule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      ScheduleExpression: "cron(0 7 * * ? *)"
+      ScheduleExpressionTimezone: "America/New_York"
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !Ref DailyStateMachine
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: "{}"
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StartStateMachine
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref DailyStateMachine
+
+Outputs:
+  StateMachineArn:
+    Value: !Ref DailyStateMachine
+  AlertTopicArn:
+    Value: !Ref AlertTopic
+  BucketName:
+    Value: !Ref DocsBucket

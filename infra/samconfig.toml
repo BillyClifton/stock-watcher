@@ -1,0 +1,9 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "stock-watcher"
+resolve_s3 = true
+s3_prefix = "stock-watcher"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "BedrockModelId=\"anthropic.claude-3-5-sonnet-20240620-v1:0\" AlertEmail=\"williammclifton@gmail.com\""
+image_repositories = []

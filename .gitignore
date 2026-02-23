@@ -1,0 +1,40 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# AWS SAM build artifacts
+.aws-sam/
+
+# Local environment files
+.env
+
+# macOS system files
+.DS_Store
+
+# IDE settings
+.vscode/
+.idea/
+
+# Coverage reports
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Ignore compiled files
+*.out
+*.class
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore test results
+*.test-results.xml
+*.test-results.json
