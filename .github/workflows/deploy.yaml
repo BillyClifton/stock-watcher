@@ -38,14 +38,14 @@ jobs:
       #   run: |
       #     npm ci
 
-      # 🧰 Step 2: Configure AWS credentials using OpenID Connect
+      # 🧰 Step 4: Configure AWS credentials using OpenID Connect
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 🪄 Step 3: Validate SAM template
+      # 🪄 Step 5: Validate SAM template
       - name: Validate SAM Template
         uses: aws-actions/setup-sam@v2
       - run: sam validate --lint
@@ -54,14 +54,15 @@ jobs:
       # - name: Clean previous build artifacts
       #   run: rm -rf .aws-sam
 
+      # 🏗️ Step 7: Build SAM application
       - name: Build SAM Application
         run: sam build --use-container
 
-      # # 🧪 Step 7: Run basic tests (optional)
+      # # 🧪 Step 8: Run basic tests (optional)
       # - name: Run unit tests
       #   run: npm test --if-present
 
-      # 📦 Step 8: Package and deploy
+      # 📦 Step 9: Package and deploy
       - name: Deploy SAM Stack
         run: |
           sam deploy \
