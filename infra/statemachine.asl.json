@@ -5,7 +5,7 @@
     "LoadTickers": {
       "Type": "Pass",
       "ResultPath": "$.tickers",
-      "Result": { "source": "src/config/tickers.json" },
+      "Result": { "list": ["AAPL","MSFT","AMZN","GOOGL","NVDA","META","TSLA","BRK.B","JPM","XOM"] },
       "Next": "ProcessTickers"
     },
     "ProcessTickers": {
@@ -40,7 +40,8 @@
       "Parameters": {
         "FunctionName": "${BuildAlertArn}",
         "Payload": {
-          "runDate.$": "$$.Execution.StartTime"
+          "runDate.$": "$$.Execution.StartTime",
+          "tickers.$": "$.tickers.list"
         }
       },
       "ResultPath": "$.alert",

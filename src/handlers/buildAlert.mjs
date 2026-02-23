@@ -1,14 +1,25 @@
-import { readTickers } from "../lib/aws/s3.mjs"; // or local file read
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import { getSignalsForRun } from "../lib/aws/ddb.mjs";
 import { invokeBedrockJson } from "../lib/aws/bedrock.mjs";
 import { publishSns } from "../lib/aws/sns.mjs";
 import { formatDailyFallback } from "../lib/alerts/formatDaily.mjs";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadTickers() {
+  const { tickers } = JSON.parse(
+    readFileSync(join(__dirname, "../config/tickers.json"), "utf8")
+  );
+  return tickers;
+}
+
 export async function handler(event) {
   const runDate = (event.runDate ?? new Date().toISOString()).slice(0, 10);
   const modelId = process.env.BEDROCK_MODEL_ID;
 
-  const tickers = event.tickers ?? ["AAPL","MSFT","AMZN","GOOGL","NVDA","META","TSLA","BRK.B","JPM","XOM"];
+  const tickers = event.tickers ?? loadTickers();
   const signals = await getSignalsForRun(tickers, runDate);
 
   // Bedrock: concise daily summary + ranking

@@ -1,5 +1,5 @@
-import { fetchLatestFilingsText } from "../lib/edgar/edgar.mjs";
-import { htmlToText } from "../lib/parse/htmlToText.mjs";
+import { fetchLatestFilingsText } from "../lib/edger/edger.mjs";
+import { htmlToText } from "../lib/parse/htmltotext.js";
 import { chunkText } from "../lib/parse/chunker.mjs";
 import { extractForward } from "../lib/analysis/extractForward.mjs";
 import { putDoc, putSignal, getLatestSignal } from "../lib/aws/ddb.mjs";
