@@ -6,10 +6,6 @@ Parameters:
   BedrockModelId:
     Type: String
     Default: "anthropic.claude-3-5-sonnet-20240620-v1:0"
-  AlertEmail:
-    Type: String
-    Default: "you@example.com"
-
 Globals:
   Function:
     Runtime: nodejs20.x
@@ -64,12 +60,12 @@ Resources:
   AlertTopic:
     Type: AWS::SNS::Topic
 
-  EmailSubscription:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref AlertTopic
-      Protocol: email
-      Endpoint: !Ref AlertEmail
+  # EmailSubscription:
+  #   Type: AWS::SNS::Subscription
+  #   Properties:
+  #     TopicArn: !Ref AlertTopic
+  #     Protocol: email
+  #     Endpoint: !Ref AlertEmail
 
   # --- Lambdas ---
   RunDailyFunction:
