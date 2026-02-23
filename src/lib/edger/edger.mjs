@@ -1,8 +1,6 @@
 const SEC_UA = process.env.SEC_USER_AGENT || "stock-forecast-bot (you@example.com)";
 
-export async function fetchLatestFilingsText(ticker) {
-  // MVP: you’ll need a mapping ticker->CIK. Start with a small static map for your 10 tickers.
-  // Later: auto-resolve via SEC company_tickers.json.
+export async function fetchLatestFilingMeta(ticker) {
   const cik = TICKER_TO_CIK[ticker];
   if (!cik) throw new Error(`Missing CIK for ${ticker}`);
 
@@ -12,19 +10,32 @@ export async function fetchLatestFilingsText(ticker) {
   const recent = sub?.filings?.recent;
   if (!recent) throw new Error(`No filings.recent for ${ticker}`);
 
-  // pick latest 10-Q or 10-K
+  // MVP: latest 10-Q/10-K. Later add 8-K.
   const idx = recent.form.findIndex((f) => f === "10-Q" || f === "10-K");
   if (idx < 0) throw new Error(`No 10-Q/10-K found in recent filings for ${ticker}`);
 
-  const accession = recent.accessionNumber[idx].replaceAll("-", "");
-  const primaryDoc = recent.primaryDocument[idx];
-  const filingDate = recent.filingDate[idx];
   const form = recent.form[idx];
+  const filingDate = recent.filingDate[idx];
+  const accessionNumberDashed = recent.accessionNumber[idx];
+  const accessionNumber = accessionNumberDashed.replaceAll("-", "");
+  const primaryDocument = recent.primaryDocument[idx];
 
-  const docUrl = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik, 10)}/${accession}/${primaryDoc}`;
-  const html = await fetchText(docUrl);
+  const docUrl = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik, 10)}/${accessionNumber}/${primaryDocument}`;
 
-  return { form, filingDate, docUrl, html };
+  return {
+    ticker,
+    cik,
+    form,
+    filingDate,
+    accessionNumberDashed,
+    accessionNumber,
+    primaryDocument,
+    docUrl
+  };
+}
+
+export async function downloadFilingHtml(docUrl) {
+  return fetchText(docUrl);
 }
 
 async function fetchJson(url) {
