@@ -1,0 +1,75 @@
+name: Deploy Stock Watcher to AWS
+
+on:
+  push:
+    branches:
+      - dev
+      - stage
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  STACK_NAME: stock-watcher-${{ github.ref_name }} 
+  BEDROCK_MODEL_ID: "anthropic.claude-3-5-sonnet
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Build & Deploy to AWS
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
+    steps:
+      # 🧰 Step 1: Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # # 🧱 Step 2: Setup Node.js (for SAM build)
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
+      #     cache: npm
+
+      # # ⚡ Step 3: Install dependencies (for Lambda functions)
+      # - name: Install dependencies
+      #   run: |
+      #     npm ci
+
+      # 🪄 Step 4: Validate SAM template
+      - name: Validate SAM Template
+        uses: aws-actions/setup-sam@v2
+      - run: sam validate --lint
+
+      # 🧰 Step 5: Configure AWS credentials using OpenID Connect
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # # 🏗️ Step 6: Build application
+      # - name: Clean previous build artifacts
+      #   run: rm -rf .aws-sam
+
+      - name: Build SAM Application
+        run: sam build --use-container
+
+      # # 🧪 Step 7: Run basic tests (optional)
+      # - name: Run unit tests
+      #   run: npm test --if-present
+
+      # 📦 Step 8: Package and deploy
+      - name: Deploy SAM Stack
+        run: |
+          sam deploy \
+            --stack-name "${STACK_NAME}" \
+            --capabilities CAPABILITY_IAM \
+            --region "${AWS_REGION}" \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides BedrockModelId="${{ env.BEDROCK_MODEL_ID }}" \  
+            --resolve-s3 \
+            --no-progressbar
