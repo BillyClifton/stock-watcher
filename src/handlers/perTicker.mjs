@@ -1,14 +1,22 @@
-import { fetchLatestFiling } from "../lib/edgar/edgar.mjs";
-import { htmlToText } from "../lib/parse/htmlToText.mjs";
+import { fetchLatestFiling } from "../lib/edger/edger.mjs";
+import { htmlToText } from "../lib/parse/htmltotext.js";
 import { chunkText } from "../lib/parse/chunker.mjs";
 import { extractForward } from "../lib/analysis/extractForward.mjs";
-import { buildDocSk, getDoc, putDocIfAbsent, markDocProcessed, putSignal, getLatestSignal } from "../lib/aws/ddb.mjs";
+import {
+  buildDocSk,
+  getDoc,
+  putDocIfAbsent,
+  markDocProcessed,
+  putSignal,
+  getLatestSignal,
+} from "../lib/aws/ddb.mjs";
 import { putObject } from "../lib/aws/s3.mjs";
 import { scoreSignal, diffSignals } from "../lib/analysis/score.mjs";
 
 export async function handler(event) {
   const ticker = event.ticker;
-  const runDate = (event.runDate?.slice(0, 10)) ?? new Date().toISOString().slice(0, 10);
+  const runDate =
+    event.runDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
   const modelId = process.env.BEDROCK_MODEL_ID;
 
   // 1) Fetch latest filing (cheap compared to Bedrock)
@@ -18,7 +26,7 @@ export async function handler(event) {
   const docSk = buildDocSk({
     form: filing.form,
     filingDate: filing.filingDate,
-    accessionNumber: filing.accessionNumber
+    accessionNumber: filing.accessionNumber,
   });
 
   // 3) See if we already processed this doc with Bedrock
@@ -30,7 +38,9 @@ export async function handler(event) {
 
     // If we have nothing to reuse, fall through to process normally.
     if (prevSignal?.extracted) {
-      const scores = prevSignal.scores ?? scoreSignal({ extracted: prevSignal.extracted, changeLog: [] });
+      const scores =
+        prevSignal.scores ??
+        scoreSignal({ extracted: prevSignal.extracted, changeLog: [] });
 
       await putSignal({
         ticker,
@@ -45,8 +55,8 @@ export async function handler(event) {
           filingDate: filing.filingDate,
           accessionNumber: filing.accessionNumber,
           primaryDocument: filing.primaryDocument,
-          docUrl: filing.docUrl
-        }
+          docUrl: filing.docUrl,
+        },
       });
 
       return { ticker, skipped: true, reason: "no_new_filing", docSk, scores };
@@ -76,8 +86,8 @@ export async function handler(event) {
       sourceUrl: filing.docUrl,
       s3RawKey,
       s3TextKey,
-      createdAt: new Date().toISOString()
-    }
+      createdAt: new Date().toISOString(),
+    },
   });
 
   // 5) Bedrock extraction
@@ -85,12 +95,14 @@ export async function handler(event) {
     modelId,
     ticker,
     filingMeta: filing,
-    chunks
+    chunks,
   });
 
   // 6) Diff vs previous signal for this ticker
   const prevSignal = await getLatestSignal(ticker);
-  const changeLog = prevSignal?.extracted ? diffSignals(prevSignal, extracted) : [];
+  const changeLog = prevSignal?.extracted
+    ? diffSignals(prevSignal, extracted)
+    : [];
 
   // 7) Score
   const scores = scoreSignal({ extracted, changeLog });
@@ -108,8 +120,8 @@ export async function handler(event) {
       filingDate: filing.filingDate,
       accessionNumber: filing.accessionNumber,
       primaryDocument: filing.primaryDocument,
-      docUrl: filing.docUrl
-    }
+      docUrl: filing.docUrl,
+    },
   });
 
   await markDocProcessed({ ticker, docSk });

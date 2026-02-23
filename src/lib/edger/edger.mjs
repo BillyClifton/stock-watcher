@@ -1,4 +1,5 @@
-const SEC_UA = process.env.SEC_USER_AGENT || "stock-forecast-bot (you@example.com)";
+const SEC_UA =
+  process.env.SEC_USER_AGENT || "stock-forecast-bot (you@example.com)";
 
 export async function fetchLatestFilingMeta(ticker) {
   const cik = TICKER_TO_CIK[ticker];
@@ -12,7 +13,8 @@ export async function fetchLatestFilingMeta(ticker) {
 
   // MVP: latest 10-Q/10-K. Later add 8-K.
   const idx = recent.form.findIndex((f) => f === "10-Q" || f === "10-K");
-  if (idx < 0) throw new Error(`No 10-Q/10-K found in recent filings for ${ticker}`);
+  if (idx < 0)
+    throw new Error(`No 10-Q/10-K found in recent filings for ${ticker}`);
 
   const form = recent.form[idx];
   const filingDate = recent.filingDate[idx];
@@ -30,7 +32,7 @@ export async function fetchLatestFilingMeta(ticker) {
     accessionNumberDashed,
     accessionNumber,
     primaryDocument,
-    docUrl
+    docUrl,
   };
 }
 
@@ -38,8 +40,16 @@ export async function downloadFilingHtml(docUrl) {
   return fetchText(docUrl);
 }
 
+export async function fetchLatestFiling(ticker) {
+  const meta = await fetchLatestFilingMeta(ticker);
+  const html = await downloadFilingHtml(meta.docUrl);
+  return { ...meta, html };
+}
+
 async function fetchJson(url) {
-  const r = await fetch(url, { headers: { "User-Agent": SEC_UA, Accept: "application/json" } });
+  const r = await fetch(url, {
+    headers: { "User-Agent": SEC_UA, Accept: "application/json" },
+  });
   if (!r.ok) throw new Error(`SEC fetch failed ${r.status} ${url}`);
   return r.json();
 }
@@ -60,5 +70,5 @@ const TICKER_TO_CIK = {
   TSLA: "0001318605",
   "BRK.B": "0001067983",
   JPM: "0000019617",
-  XOM: "0000034088"
+  XOM: "0000034088",
 };

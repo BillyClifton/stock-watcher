@@ -7,7 +7,12 @@ export async function handler(event) {
   const runDate = (event.runDate ?? new Date().toISOString()).slice(0, 10);
   const modelId = process.env.BEDROCK_MODEL_ID;
 
-  const tickers = event.tickers ?? ["AAPL","MSFT","AMZN","GOOGL","NVDA","META","TSLA","BRK.B","JPM","XOM"];
+  const tickers = event.tickers;
+  if (!Array.isArray(tickers) || tickers.length === 0) {
+    throw new Error(
+      "handler requires event.tickers to be a non-empty array of ticker symbols",
+    );
+  }
   const signals = await getSignalsForRun(tickers, runDate);
 
   const processed = signals.filter((s) => !s.missing && s.skipped !== true);
@@ -19,14 +24,14 @@ export async function handler(event) {
     counts: {
       processed: processed.length,
       skipped: skipped.length,
-      missing: missing.length
+      missing: missing.length,
     },
     processed: processed.map(pickForSummarizer),
     skipped: skipped.map((s) => ({
       ticker: s.ticker,
-      docRef: s.docRef ?? s.extracted?.doc ?? null
+      docRef: s.docRef ?? s.extracted?.doc ?? null,
     })),
-    missing: missing.map((s) => s.ticker)
+    missing: missing.map((s) => s.ticker),
   };
 
   const jsonSchemaHint = `
@@ -58,8 +63,7 @@ export async function handler(event) {
             content: [
               {
                 type: "text",
-                text:
-`Create a concise daily stock forecast signal alert.
+                text: `Create a concise daily stock forecast signal alert.
 
 Rules:
 - Only rank and discuss "processed" tickers (new filing processed today).
@@ -68,11 +72,11 @@ Rules:
 - Keep "why/what" short, factual, and based on the structured data.
 
 Input JSON:
-${JSON.stringify(summaryInput, null, 2)}`
-              }
-            ]
-          }
-        ]
+${JSON.stringify(summaryInput, null, 2)}`,
+              },
+            ],
+          },
+        ],
       });
     }
   } catch (e) {
@@ -88,7 +92,15 @@ ${JSON.stringify(summaryInput, null, 2)}`
 
   await publishSns({ subject, message });
 
-  return { ok: true, runDate, counts: { processed: processed.length, skipped: skipped.length, missing: missing.length } };
+  return {
+    ok: true,
+    runDate,
+    counts: {
+      processed: processed.length,
+      skipped: skipped.length,
+      missing: missing.length,
+    },
+  };
 }
 
 function pickForSummarizer(s) {
@@ -99,9 +111,9 @@ function pickForSummarizer(s) {
     extracted: {
       guidance: s.extracted?.guidance ?? [],
       forwardDrivers: s.extracted?.forwardDrivers ?? [],
-      notableRisks: s.extracted?.notableRisks ?? []
+      notableRisks: s.extracted?.notableRisks ?? [],
     },
-    docRef: s.docRef ?? null
+    docRef: s.docRef ?? null,
   };
 }
 
@@ -109,8 +121,7 @@ function buildNoNewFilingsAlert({ runDate, skipped, missing }) {
   const noNew = skipped.map((s) => s.ticker);
   const miss = missing.map((s) => s.ticker);
 
-  const markdown =
-`# Daily Stock Forecast Signals — ${runDate}
+  const markdown = `# Daily Stock Forecast Signals — ${runDate}
 
 ## New filings processed
 None today.
@@ -132,16 +143,24 @@ ${miss.length ? miss.map((t) => `- ${t}`).join("\n") : "- (none)"}
     noNewFilings: noNew,
     missing: miss,
     oneLiners: [
-      ...noNew.map((t) => ({ ticker: t, line: "No new filings; reused last snapshot." })),
-      ...miss.map((t) => ({ ticker: t, line: "Missing signal for today (check logs)." }))
+      ...noNew.map((t) => ({
+        ticker: t,
+        line: "No new filings; reused last snapshot.",
+      })),
+      ...miss.map((t) => ({
+        ticker: t,
+        line: "Missing signal for today (check logs).",
+      })),
     ],
-    markdown
+    markdown,
   };
 }
 
 function renderMarkdownFromAlert(alert, runDate) {
-  const list = (arr, fmt) => (arr?.length ? arr.map(fmt).join("\n") : "- (none)");
-  const tickList = (arr) => (arr?.length ? arr.map((t) => `- ${t}`).join("\n") : "- (none)");
+  const list = (arr, fmt) =>
+    arr?.length ? arr.map(fmt).join("\n") : "- (none)";
+  const tickList = (arr) =>
+    arr?.length ? arr.map((t) => `- ${t}`).join("\n") : "- (none)";
 
   return `# Daily Stock Forecast Signals — ${alert.date || runDate}
 
