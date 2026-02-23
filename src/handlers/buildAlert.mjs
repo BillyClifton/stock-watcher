@@ -1,4 +1,3 @@
-import { readTickers } from "../lib/aws/s3.mjs"; // or local file read
 import { getSignalsForRun } from "../lib/aws/ddb.mjs";
 import { invokeBedrockJson } from "../lib/aws/bedrock.mjs";
 import { publishSns } from "../lib/aws/sns.mjs";
