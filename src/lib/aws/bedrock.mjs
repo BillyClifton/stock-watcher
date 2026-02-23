@@ -32,7 +32,7 @@ export async function invokeBedrockJson({ modelId, system, messages, jsonSchemaH
   return safeJsonParse(text);
 }
 
-function safeJsonParse(text) {
+export function safeJsonParse(text) {
   // Best-effort: extract first {...} block
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
