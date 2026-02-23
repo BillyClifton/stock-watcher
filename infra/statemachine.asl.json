@@ -40,7 +40,8 @@
       "Parameters": {
         "FunctionName": "${BuildAlertArn}",
         "Payload": {
-          "runDate.$": "$$.Execution.StartTime"
+          "runDate.$": "$$.Execution.StartTime",
+          "tickers.$": "$.tickers.list"
         }
       },
       "ResultPath": "$.alert",

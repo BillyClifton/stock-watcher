@@ -67,7 +67,10 @@ The guided deploy creates:
 
 ### Watched tickers
 
-Edit `src/config/tickers.json` **and** the `"list"` array in `infra/statemachine.asl.json` `LoadTickers.Result` to keep them in sync:
+Edit `src/config/tickers.json` to update the watched ticker list. This file is the single source of truth:
+
+- The scheduled state machine defines the ticker list in `infra/statemachine.asl.json` under `LoadTickers.Result.list` (the `$.tickers.list` path consumed by both `ProcessTickers` and `BuildAlertFunction`) — so `statemachine.asl.json` must also be updated to match.
+- When `BuildAlertFunction` is invoked without an `event.tickers` value (e.g. ad-hoc Lambda invocation), it falls back to reading `src/config/tickers.json` directly.
 
 ```json
 // src/config/tickers.json

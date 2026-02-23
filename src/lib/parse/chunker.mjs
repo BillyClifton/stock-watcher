@@ -3,6 +3,9 @@ const CHUNK_CHARS = 2000;
 const OVERLAP_CHARS = 200;
 
 export function chunkText(text) {
+  if (!text) {
+    return [];
+  }
   const chunks = [];
   let start = 0;
   let idx = 0;
