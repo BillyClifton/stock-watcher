@@ -9,8 +9,8 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  STACK_NAME: stock-watcher-${{ github.ref_name }} 
-  BEDROCK_MODEL_ID: "anthropic.claude-3-5-sonnet
+  STACK_NAME: stock-watcher-${{ github.ref_name }}
+  BEDROCK_MODEL_ID: "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
 permissions:
   id-token: write
@@ -38,17 +38,17 @@ jobs:
       #   run: |
       #     npm ci
 
-      # 🪄 Step 4: Validate SAM template
-      - name: Validate SAM Template
-        uses: aws-actions/setup-sam@v2
-      - run: sam validate --lint
-
-      # 🧰 Step 5: Configure AWS credentials using OpenID Connect
+      # 🧰 Step 2: Configure AWS credentials using OpenID Connect
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      # 🪄 Step 3: Validate SAM template
+      - name: Validate SAM Template
+        uses: aws-actions/setup-sam@v2
+      - run: sam validate --lint
 
       # # 🏗️ Step 6: Build application
       # - name: Clean previous build artifacts
@@ -70,6 +70,6 @@ jobs:
             --region "${AWS_REGION}" \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --parameter-overrides BedrockModelId="${{ env.BEDROCK_MODEL_ID }}" \  
+            --parameter-overrides BedrockModelId="${{ env.BEDROCK_MODEL_ID }}" \
             --resolve-s3 \
             --no-progressbar
